@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VidyaSetu — Speak your doubt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Hind:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#170f2b;
+    --ink2:#221a3d;
+    --ink3:#2c2350;
+    --paper:#f6f1ff;
+    --muted:#9c8fbd;
+    --marigold:#f2a93b;
+    --teal:#59d6bd;
+    --line: rgba(246,241,255,0.10);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh;
+    background:
+      radial-gradient(60% 45% at 50% -8%, rgba(242,169,59,0.14), transparent 60%),
+      radial-gradient(50% 40% at 100% 100%, rgba(89,214,189,0.10), transparent 60%),
+      var(--ink);
+    color:var(--paper);
+    font-family:'Hind', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:760px; margin:0 auto; padding:44px 24px 64px; }
+
+  header{ text-align:center; margin-bottom:8px; }
+  .word{
+    font-family:'Baloo 2', sans-serif; font-weight:700;
+    font-size:44px; letter-spacing:0.2px; margin:0;
+    background:linear-gradient(90deg, var(--marigold), var(--teal));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .tag{ color:var(--muted); font-size:14.5px; margin:6px 0 0; font-family:'IBM Plex Mono', monospace; letter-spacing:0.03em; }
+
+  .langrow{ display:flex; justify-content:center; gap:10px; margin:28px 0 6px; }
+  .langbtn{
+    background:var(--ink2); border:1px solid var(--line); color:var(--paper);
+    padding:9px 18px; border-radius:100px; font-family:'Hind',sans-serif; font-size:14.5px; font-weight:500;
+    cursor:pointer; transition:border-color .2s ease, background .2s ease;
+  }
+  .langbtn.active{ background:var(--marigold); color:#22160a; border-color:var(--marigold); font-weight:600; }
+
+  /* ---------- BRIDGE ---------- */
+  .bridge-stage{ position:relative; height:190px; margin:34px 0 8px; }
+  .bridge-stage svg{ width:100%; height:100%; }
+  .bar{ fill:var(--teal); opacity:0.85; transform-origin:bottom center; transition: transform .09s ease-out; }
+  .pillar-label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.08em; fill: var(--muted); text-transform:uppercase; }
+  .mic-btn{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-46%);
+    width:76px; height:76px; border-radius:50%; border:none; cursor:pointer;
+    background: radial-gradient(circle at 35% 30%, #ffd58a, var(--marigold) 60%);
+    box-shadow: 0 0 0 0 rgba(242,169,59,0.5);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform .15s ease;
+  }
+  .mic-btn:hover{ transform:translate(-50%,-46%) scale(1.04); }
+  .mic-btn.listening{ animation: mic-pulse 1.4s ease-in-out infinite; }
+  @keyframes mic-pulse{
+    0%,100%{ box-shadow:0 0 0 0 rgba(242,169,59,0.55); }
+    50%{ box-shadow:0 0 0 16px rgba(242,169,59,0); }
+  }
+  .mic-btn svg{ width:30px; height:30px; }
+
+  .status{ text-align:center; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--teal); min-height:18px; margin-bottom:18px; }
+
+  .panels{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+  @media (max-width:600px){ .panels{ grid-template-columns:1fr; } }
+  .panel{ background:var(--ink2); border:1px solid var(--line); border-radius:16px; padding:18px 20px; min-height:120px; }
+  .panel .lbl{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:8px; }
+  .panel .txt{ font-size:16.5px; line-height:1.6; white-space:pre-wrap; }
+  .panel .txt.placeholder{ color:var(--muted); font-size:14.5px; }
+  .panel .txt.scroll{ max-height:260px; overflow-y:auto; }
+
+  .inputrow{ display:flex; gap:10px; }
+  .inputrow input[type="text"]{
+    flex:1; background:var(--ink2); border:1px solid var(--line); color:var(--paper);
+    padding:14px 16px; border-radius:12px; font-family:'Hind',sans-serif; font-size:15px; outline:none;
+  }
+  .inputrow input:focus{ border-color:var(--teal); }
+  .inputrow button{
+    background:var(--teal); border:none; color:#0e2622; font-weight:600;
+    padding:14px 20px; border-radius:12px; cursor:pointer; font-family:'Hind',sans-serif; font-size:15px;
+  }
+  .hint{ text-align:center; color:var(--muted); font-size:12.5px; margin-top:14px; line-height:1.6; }
+  .hint b{ color:var(--paper); }
+
+  /* ---------- DOCUMENT / PDF SECTION ---------- */
+  .divider{ border:none; border-top:1px solid var(--line); margin:40px 0 28px; }
+  .section-title{ font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--marigold); margin:0 0 12px; }
+  .uploadrow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+  .filebtn{
+    background:var(--ink2); border:1px dashed var(--line); color:var(--paper);
+    padding:13px 18px; border-radius:12px; font-family:'Hind',sans-serif; font-size:14.5px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .filebtn input{ display:none; }
+  .filename{ color:var(--muted); font-size:13px; font-family:'IBM Plex Mono', monospace; }
+  .translate-btn{
+    background:var(--marigold); border:none; color:#22160a; font-weight:600;
+    padding:13px 20px; border-radius:12px; cursor:pointer; font-family:'Hind',sans-serif; font-size:14.5px;
+  }
+  .translate-btn:disabled{ opacity:0.45; cursor:not-allowed; }
+
+  /* ---------- CONSENT GATE ---------- */
+  #consentGate{
+    position:fixed; inset:0; z-index:100; background:rgba(9,6,18,0.92);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .gate-card{
+    background:var(--ink2); border:1px solid var(--line); border-radius:20px;
+    max-width:560px; width:100%; padding:32px; max-height:86vh; display:flex; flex-direction:column;
+  }
+  .gate-card h2{ font-family:'Baloo 2', sans-serif; font-size:26px; margin:0 0 4px; color:var(--paper); }
+  .gate-card .gate-sub{ color:var(--muted); font-size:13.5px; margin:0 0 18px; }
+  .gate-scroll{
+    overflow-y:auto; border:1px solid var(--line); border-radius:12px; padding:16px 18px;
+    background:var(--ink); margin-bottom:18px; flex:1;
+  }
+  .gate-scroll h3{ font-size:14px; color:var(--teal); margin:18px 0 6px; }
+  .gate-scroll h3:first-child{ margin-top:0; }
+  .gate-scroll p{ font-size:13px; line-height:1.65; color:var(--paper); margin:0 0 10px; }
+  .gate-scroll .draft-note{ color:var(--marigold); font-size:11.5px; font-family:'IBM Plex Mono', monospace; }
+  .gate-check{ display:flex; align-items:flex-start; gap:10px; margin-bottom:16px; }
+  .gate-check input{ margin-top:3px; width:16px; height:16px; accent-color: var(--teal); }
+  .gate-check label{ font-size:13px; color:var(--paper); line-height:1.5; }
+  .gate-enter{
+    width:100%; background:var(--teal); border:none; color:#0e2622; font-weight:700;
+    padding:14px; border-radius:12px; cursor:pointer; font-family:'Hind',sans-serif; font-size:15px;
+  }
+  .gate-enter:disabled{ opacity:0.4; cursor:not-allowed; }
+  #appRoot{ display:none; }
+
+  .step-row{ display:flex; align-items:center; gap:16px; margin-bottom:16px; }
+  .step-icon{
+    flex-shrink:0; width:64px; height:50px; color:var(--teal);
+    background:var(--ink2); border:1px solid var(--line); border-radius:10px;
+    display:flex; align-items:center; justify-content:center; padding:6px;
+  }
+  .step-icon svg{ width:100%; height:100%; }
+  .step-num{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--marigold);
+    letter-spacing:0.06em; margin-bottom:2px;
+  }
+  .step-text p{ margin:0; font-size:13px; line-height:1.5; color:var(--paper); }
+  .step-text b{ color:var(--teal); }
+
+  .callout{
+    background: rgba(242,169,59,0.10); border:1.5px solid var(--marigold);
+    border-radius:12px; padding:14px 16px; margin:18px 0 6px;
+  }
+  .callout .callout-title{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.06em;
+    color:var(--marigold); text-transform:uppercase; margin:0 0 8px; display:flex; align-items:center; gap:6px;
+  }
+  .callout p{ font-size:13px; line-height:1.6; margin:0 0 6px; color:var(--paper); }
+  .callout ol{ margin:0 0 6px; padding-left:18px; }
+  .callout li{ font-size:13px; line-height:1.6; margin-bottom:4px; }
+  .callout b{ color:var(--marigold); }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="step-signin" viewBox="0 0 100 76">
+      <rect x="4" y="4" width="92" height="68" rx="8" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <circle cx="14" cy="14" r="2.4" fill="currentColor"/>
+      <circle cx="22" cy="14" r="2.4" fill="currentColor"/>
+      <circle cx="30" cy="14" r="2.4" fill="currentColor"/>
+      <rect x="28" y="32" width="44" height="8" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="28" y="46" width="44" height="8" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="38" y="60" width="24" height="8" rx="4" fill="currentColor"/>
+    </symbol>
+    <symbol id="step-menu" viewBox="0 0 100 76">
+      <rect x="4" y="4" width="92" height="68" rx="8" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <rect x="12" y="14" width="30" height="6" rx="2" fill="currentColor" opacity="0.35"/>
+      <rect x="12" y="26" width="30" height="6" rx="2" fill="currentColor" opacity="0.35"/>
+      <rect x="10" y="37" width="34" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <text x="27" y="46" text-anchor="middle" font-size="7" fill="currentColor" font-family="IBM Plex Mono, monospace">API keys</text>
+      <rect x="12" y="55" width="30" height="6" rx="2" fill="currentColor" opacity="0.35"/>
+      <path d="M50 43h20M64 37l6 6-6 6" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="step-create" viewBox="0 0 100 76">
+      <rect x="18" y="30" width="64" height="18" rx="9" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <text x="50" y="42" text-anchor="middle" font-size="7.5" fill="currentColor" font-family="IBM Plex Mono, monospace">+ Create key</text>
+      <path d="M70 55l10 10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M70 55l4 12 -4-2-3 4z" fill="currentColor"/>
+      <circle cx="30" cy="14" r="5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M30 19v8M26 25h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="step-copy" viewBox="0 0 100 76">
+      <circle cx="38" cy="38" r="17" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <rect x="35" y="35" width="6" height="14" rx="2" fill="currentColor"/>
+      <path d="M46 30l7-7 4 4-7 7z" fill="currentColor"/>
+      <rect x="60" y="16" width="24" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="54" y="24" width="24" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <text x="50" y="66" text-anchor="middle" font-size="7" fill="currentColor" font-family="IBM Plex Mono, monospace">shown once!</text>
+    </symbol>
+    <symbol id="step-paste" viewBox="0 0 100 76">
+      <rect x="6" y="30" width="60" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <text x="36" y="42" text-anchor="middle" font-size="7" fill="currentColor" font-family="IBM Plex Mono, monospace">sk-••••••••</text>
+      <path d="M74 20v-8M74 12l-5 5M74 12l5 5" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M78 34c8 0 8 8 0 8h-8" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M78 62l-16-16 16-16" stroke="currentColor" stroke-width="0" fill="none"/>
+      <rect x="70" y="54" width="24" height="16" rx="4" fill="currentColor" opacity="0.9"/>
+      <text x="82" y="65" text-anchor="middle" font-size="6.5" fill="#170f2b" font-family="Baloo 2, sans-serif" font-weight="700">VS</text>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ================= CONSENT GATE ================= -->
+<div id="consentGate">
+  <div class="gate-card" id="gateStep1">
+    <h2>Before you enter</h2>
+    <p class="gate-sub">Please read and accept to continue.</p>
+    <div class="gate-scroll">
+      <p class="draft-note">These policies are a starting point — have them reviewed by a lawyer before relying on them.</p>
+
+      <h3>Privacy Policy</h3>
+      <p><b>What we collect.</b> If you use the mic, your speech is processed by your browser's built-in speech recognition service to turn it into text — VidyaSetu does not run its own voice-collection server. Typed doubts and any PDF you upload are sent to Groq's API (running the open-weight GPT-OSS-120B model) to generate an explanation or translation.</p>
+      <p><b>Where it goes.</b> Text you submit (typed, transcribed from voice, or extracted from a PDF) is sent to Groq's API for processing, using the API key you provide. No copy is stored on any VidyaSetu server — this is a static, client-side app with no backend database.</p>
+      <p><b>Third parties.</b> Your browser/OS speech recognition and text-to-speech provider, and Groq (via your own API key), process data as described above under their own respective terms.</p>
+      <p><b>Retention.</b> Nothing is retained by VidyaSetu once you close this page. We recommend not uploading sensitive personal documents.</p>
+      <p><b>Students &amp; minors.</b> This tool may be used by school-age students. If you are under 18, please use it with a parent, guardian, or teacher's awareness.</p>
+
+      <h3>Terms of Service</h3>
+      <p>VidyaSetu is provided "as is," with no warranty of accuracy, availability, or fitness for a particular purpose. Explanations are AI-generated and may contain mistakes — always verify against your textbook or teacher.</p>
+      <p>Don't upload confidential, sensitive, or copyrighted material you don't have the right to share. Don't use this tool as a substitute for professional medical, legal, or financial advice.</p>
+      <p>These terms may change as VidyaSetu evolves.</p>
+    </div>
+    <div class="gate-check">
+      <input type="checkbox" id="agreeCheck">
+      <label for="agreeCheck">I have read and agree to the Privacy Policy and Terms of Service above.</label>
+    </div>
+    <button class="gate-enter" id="continueBtn" disabled>Continue</button>
+  </div>
+
+  <div class="gate-card" id="gateStep2" style="display:none;">
+    <h2>Setting up your API key</h2>
+    <p class="gate-sub">VidyaSetu runs on GPT-OSS-120B (OpenAI's open-weight model) via Groq's free API — here's what that means and how to connect it.</p>
+    <div class="gate-scroll">
+      <h3>What is an API key?</h3>
+      <p>An API key is like a personal password that lets an app — in this case, VidyaSetu, running right here in your browser — send requests to a model on your behalf. It's tied to your own Groq account. Nobody else sees it, and VidyaSetu doesn't send it anywhere except directly to Groq.</p>
+
+      <h3>Why GPT-OSS-120B on Groq?</h3>
+      <p>GPT-OSS-120B is OpenAI's own open-weight model, released under an Apache 2.0 license — anyone can run it, including free API providers. Groq hosts it with a genuinely free tier, no card required, which makes it the easiest way to get VidyaSetu working without spending anything.</p>
+
+      <h3>How to get a free Groq API key</h3>
+      <div class="step-row">
+        <div class="step-icon"><svg><use href="#step-signin"/></svg></div>
+        <div class="step-text"><div class="step-num">STEP 1</div><p>Go to <b>console.groq.com</b> and sign in (or create a free account if you don't have one).</p></div>
+      </div>
+      <div class="step-row">
+        <div class="step-icon"><svg><use href="#step-menu"/></svg></div>
+        <div class="step-text"><div class="step-num">STEP 2</div><p>Find the <b>"API Keys"</b> section in the left-hand menu.</p></div>
+      </div>
+      <div class="step-row">
+        <div class="step-icon"><svg><use href="#step-create"/></svg></div>
+        <div class="step-text"><div class="step-num">STEP 3</div><p>Click <b>"Create API Key"</b>, name it if you like, and confirm.</p></div>
+      </div>
+      <div class="step-row">
+        <div class="step-icon"><svg><use href="#step-copy"/></svg></div>
+        <div class="step-text"><div class="step-num">STEP 4</div><p>Copy the key right away — it's only ever shown once.</p></div>
+      </div>
+      <div class="step-row">
+        <div class="step-icon"><svg><use href="#step-paste"/></svg></div>
+        <div class="step-text"><div class="step-num">STEP 5</div><p>Paste it into VidyaSetu's key field, just under the language buttons.</p></div>
+      </div>
+      <p style="font-size:12px; color:var(--muted);">No billing details needed — Groq's free tier for GPT-OSS-120B costs nothing to start.</p>
+
+      <div class="callout">
+        <p class="callout-title">⚠ Know your free-tier limits</p>
+        <p>Groq's free tier for GPT-OSS-120B is generous but not unlimited. As of mid-2026 it's capped at roughly:</p>
+        <ol>
+          <li><b>30 requests per minute</b></li>
+          <li><b>1,000 requests per day</b></li>
+          <li><b>8,000 tokens per minute</b></li>
+          <li><b>200,000 tokens per day</b></li>
+        </ol>
+        <p>That's comfortably enough for normal day-to-day use — just don't loop the app in a script that fires dozens of requests per second, or you'll hit a temporary rate limit (it resets, no charge involved). Check <b>console.groq.com</b> for the current numbers, since providers do adjust free-tier limits over time.</p>
+      </div>
+
+      <h3>How to add it to VidyaSetu</h3>
+      <p>Once you're in the app, paste your key into the box labelled <b>"Paste your Groq API key"</b> just under the Hindi/Marathi language buttons. That's it — no other setup needed. The key lives only in this browser tab for this session; it isn't saved anywhere when you close the page.</p>
+
+      <h3>Keep it safe</h3>
+      <p>Treat your key like a password. Don't share this file with your key already pasted in, and don't post screenshots that show it.</p>
+    </div>
+    <button class="gate-enter" id="enterBtn">Got it — Enter VidyaSetu</button>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="appRoot">
+<div class="wrap">
+  <header>
+    <p class="word">VidyaSetu</p>
+    <p class="tag">SPEAK YOUR DOUBT · REGIONAL LANGUAGE AI</p>
+  </header>
+
+  <div class="langrow">
+    <button class="langbtn active" data-lang="hi-IN" data-name="Hindi">हिंदी · Hindi</button>
+    <button class="langbtn" data-lang="mr-IN" data-name="Marathi">मराठी · Marathi</button>
+  </div>
+
+  <p class="hint" style="margin-top:2px; margin-bottom:0;">
+    🔊 Spoken replies currently work in Hindi only.<br>
+    बोले गए जवाब फ़िलहाल केवल हिंदी में मिलते हैं।<br>
+    बोललेले उत्तर सध्या फक्त हिंदीतच मिळते.
+  </p>
+
+  <div class="uploadrow" style="margin-top:14px;">
+    <input type="password" id="apiKeyInput" placeholder="Paste your Groq API key"
+      style="flex:1; background:var(--ink2); border:1px solid var(--line); color:var(--paper); padding:12px 16px; border-radius:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; outline:none;">
+  </div>
+  <p class="hint" style="margin-top:6px;">Your key stays in this browser tab only — used to call Groq directly, never sent anywhere else, never saved to disk.</p>
+  <p class="hint" id="quotaLabel" style="display:none; color:var(--teal); margin-top:4px;"></p>
+
+  <div class="bridge-stage">
+    <svg viewBox="0 0 400 190" preserveAspectRatio="xMidYMid meet">
+      <text x="55" y="24" class="pillar-label" text-anchor="middle">Regional</text>
+      <text x="345" y="24" class="pillar-label" text-anchor="middle">English</text>
+      <g id="barsGroup"></g>
+    </svg>
+    <button class="mic-btn" id="micBtn" title="Tap to speak">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#22160a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="2" width="6" height="12" rx="3"/>
+        <path d="M5 10a7 7 0 0 0 14 0"/>
+        <path d="M12 17v4M9 21h6"/>
+      </svg>
+    </button>
+  </div>
+
+  <p class="status" id="statusLbl">Tap the mic, or type your doubt below</p>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="lbl" id="regLbl">Hindi</div>
+      <div class="txt placeholder" id="regTxt">Your spoken answer will appear here.</div>
+    </div>
+    <div class="panel">
+      <div class="lbl">English</div>
+      <div class="txt placeholder" id="enTxt">A parallel English translation appears here.</div>
+    </div>
+  </div>
+
+  <div class="inputrow">
+    <input id="textInput" type="text" placeholder="Or type your doubt (any language)…">
+    <button id="sendBtn">Ask</button>
+  </div>
+
+  <p class="hint">Mic access needs a secure context — if it doesn't prompt for permission, use the text box instead.</p>
+
+  <hr class="divider">
+  <p class="section-title">Translate a PDF</p>
+  <div class="uploadrow">
+    <label class="filebtn">
+      📄 Choose PDF
+      <input type="file" id="pdfInput" accept="application/pdf">
+    </label>
+    <span class="filename" id="fileName">No file chosen</span>
+    <button class="translate-btn" id="translateBtn" disabled>Translate to <span id="translateLangName">Hindi</span></button>
+  </div>
+  <p class="status" id="pdfStatus"></p>
+  <div class="panels">
+    <div class="panel">
+      <div class="lbl" id="pdfRegLbl">Hindi</div>
+      <div class="txt placeholder scroll" id="pdfRegTxt">Translated document text will appear here.</div>
+    </div>
+    <div class="panel">
+      <div class="lbl">English (original / reference)</div>
+      <div class="txt placeholder scroll" id="pdfEnTxt">Extracted document text appears here.</div>
+    </div>
+  </div>
+  <p class="hint">Only the first ~6,000 characters of a document are translated at a time — longer documents will be paginated in a future update.</p>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+/* ---------------- Consent gate (2 steps) ---------------- */
+const agreeCheck = document.getElementById('agreeCheck');
+const continueBtn = document.getElementById('continueBtn');
+agreeCheck.addEventListener('change', ()=>{ continueBtn.disabled = !agreeCheck.checked; });
+continueBtn.addEventListener('click', ()=>{
+  document.getElementById('gateStep1').style.display = 'none';
+  document.getElementById('gateStep2').style.display = 'flex';
+});
+document.getElementById('enterBtn').addEventListener('click', ()=>{
+  document.getElementById('consentGate').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
+});
+
+/* ---------------- Waveform bridge ---------------- */
+const NUM_BARS = 28;
+const barsGroup = document.getElementById('barsGroup');
+const bars = [];
+for(let i=0;i<NUM_BARS;i++){
+  const x = 30 + i * (340/(NUM_BARS-1));
+  const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('class','bar');
+  rect.setAttribute('x', x-2.5);
+  rect.setAttribute('width', 5);
+  rect.setAttribute('y', 95);
+  rect.setAttribute('height', 4);
+  rect.setAttribute('rx', 2);
+  barsGroup.appendChild(rect);
+  bars.push(rect);
+}
+function setBars(amps){
+  bars.forEach((b,i)=>{
+    const h = Math.max(4, amps[i] || 4);
+    b.setAttribute('y', 97 - h/2);
+    b.setAttribute('height', h);
+  });
+}
+function idleWave(t){
+  const amps = bars.map((_,i)=> 6 + Math.sin(t/450 + i*0.5)*4 + 4);
+  setBars(amps);
+}
+let idleT = 0, listening = false;
+function idleLoop(){
+  idleT += 16;
+  if(!listening) idleWave(idleT);
+  requestAnimationFrame(idleLoop);
+}
+requestAnimationFrame(idleLoop);
+
+/* ---------------- Language state ---------------- */
+let currentLang = 'hi-IN';
+let currentName = 'Hindi';
+document.querySelectorAll('.langbtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.langbtn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentLang = btn.dataset.lang;
+    currentName = btn.dataset.name;
+    document.getElementById('regLbl').textContent = currentName;
+    document.getElementById('pdfRegLbl').textContent = currentName;
+    document.getElementById('translateLangName').textContent = currentName;
+  });
+});
+
+/* ---------------- Mic + speech ---------------- */
+const statusLbl = document.getElementById('statusLbl');
+const regTxt = document.getElementById('regTxt');
+const enTxt = document.getElementById('enTxt');
+const micBtn = document.getElementById('micBtn');
+let audioCtx, analyser, dataArray, rafId;
+
+async function startVisualizer(stream){
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  const source = audioCtx.createMediaStreamSource(stream);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 64;
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
+  source.connect(analyser);
+  const draw = ()=>{
+    analyser.getByteFrequencyData(dataArray);
+    const amps = [];
+    for(let i=0;i<NUM_BARS;i++){
+      const idx = Math.floor(i/NUM_BARS * dataArray.length);
+      amps.push(6 + (dataArray[idx]/255)*70);
+    }
+    setBars(amps);
+    rafId = requestAnimationFrame(draw);
+  };
+  draw();
+}
+function stopVisualizer(){
+  if(rafId) cancelAnimationFrame(rafId);
+  if(audioCtx) audioCtx.close();
+}
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognizer = null;
+if(SpeechRecognition){
+  recognizer = new SpeechRecognition();
+  recognizer.continuous = false;
+  recognizer.interimResults = false;
+  recognizer.onresult = (e)=>{
+    const transcript = e.results[0][0].transcript;
+    document.getElementById('textInput').value = transcript;
+    askVidyaSetu(transcript);
+  };
+  recognizer.onerror = ()=>{ statusLbl.textContent = 'Could not hear that — try typing instead'; };
+  recognizer.onend = ()=>{ listening = false; micBtn.classList.remove('listening'); stopVisualizer(); };
+}
+
+micBtn.addEventListener('click', async ()=>{
+  if(listening) return;
+  if(!recognizer){
+    statusLbl.textContent = 'Voice input not supported in this browser — please type below';
+    return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    listening = true;
+    micBtn.classList.add('listening');
+    statusLbl.textContent = 'Listening in ' + currentName + '…';
+    startVisualizer(stream);
+    recognizer.lang = currentLang;
+    recognizer.start();
+  }catch(err){
+    statusLbl.textContent = 'Mic unavailable here — please type your doubt below';
+  }
+});
+
+document.getElementById('sendBtn').addEventListener('click', ()=>{
+  const v = document.getElementById('textInput').value.trim();
+  if(v) askVidyaSetu(v);
+});
+document.getElementById('textInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ const v = e.target.value.trim(); if(v) askVidyaSetu(v); }
+});
+
+function speak(text, lang, onDone){
+  if(!('speechSynthesis' in window)){ if(onDone) onDone('unsupported'); return; }
+  const voices = window.speechSynthesis.getVoices();
+  const match = voices.find(v => v.lang === lang) || voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+  const utter = new SpeechSynthesisUtterance(text);
+  if(match){
+    utter.voice = match;
+    utter.lang = match.lang;
+  }
+  // If no matching voice exists for this language, don't force an unsupported
+  // lang tag — most browsers will silently refuse to speak at all in that case.
+  // Leave lang unset so the default voice can still attempt it.
+  utter.onerror = ()=>{ if(onDone) onDone('error'); };
+  utter.onend = ()=>{ if(onDone) onDone(match ? 'ok' : 'no-voice'); };
+  window.speechSynthesis.speak(utter);
+}
+
+async function callClaude(system, userText){
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if(!apiKey){
+    throw new Error('missing-key');
+  }
+  const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization": "Bearer " + apiKey
+    },
+    body: JSON.stringify({
+      model:"openai/gpt-oss-120b",
+      response_format: { type: "json_object" },
+      messages:[
+        {role:"system", content: system},
+        {role:"user", content: userText}
+      ]
+    })
+  });
+
+  const remReq = resp.headers.get('x-ratelimit-remaining-requests');
+  const remTok = resp.headers.get('x-ratelimit-remaining-tokens');
+  updateQuotaLabel(remReq, remTok);
+
+  if(resp.status === 429){
+    throw new Error('rate-limited');
+  }
+  const data = await resp.json();
+  if(data.error){ throw new Error(data.error.message || 'groq-error'); }
+  const raw = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "{}";
+  try{ return JSON.parse(raw); }catch(_){ return { regional: raw, english: raw }; }
+}
+
+function updateQuotaLabel(remReq, remTok){
+  const el = document.getElementById('quotaLabel');
+  if(!el) return;
+  el.style.display = 'block';
+  if(remReq === null && remTok === null){
+    el.textContent = "Live quota isn't readable from the browser for this key (Groq doesn't expose those headers cross-origin) — check your real usage at console.groq.com → Settings → Limits.";
+  } else {
+    el.textContent = `Free tier remaining — requests: ${remReq ?? '?'} · tokens: ${remTok ?? '?'}`;
+  }
+}
+
+async function askVidyaSetu(question){
+  statusLbl.textContent = 'Thinking…';
+  regTxt.classList.remove('placeholder');
+  enTxt.classList.remove('placeholder');
+  regTxt.textContent = '…';
+  enTxt.textContent = '…';
+
+  const sys = `You are VidyaSetu, a patient school tutor for Indian students, speaking ${currentName}. `+
+    `A student asked a doubt (it may be spoken, so may contain minor transcription errors, and may mix in English technical terms). `+
+    `Reply with ONLY a raw JSON object, no markdown fences, no extra text, in this exact shape: `+
+    `{"regional": "<step-by-step explanation written in ${currentName}, natural spoken register, under 90 words>", "english": "<the same explanation in English, under 90 words>"}`;
+
+  try{
+    const parsed = await callClaude(sys, question);
+    regTxt.textContent = parsed.regional || "—";
+    enTxt.textContent = parsed.english || "—";
+    statusLbl.textContent = 'Speaking answer in ' + currentName + '…';
+    speak(parsed.regional || parsed.english || "", currentLang, (result)=>{
+      if(result === 'no-voice'){
+        statusLbl.textContent = 'No ' + currentName + ' voice on this device — read the text above instead';
+      } else if(result === 'error' || result === 'unsupported'){
+        statusLbl.textContent = 'Voice playback unavailable here — read the text above instead';
+      } else {
+        statusLbl.textContent = 'Tap the mic, or type your doubt below';
+      }
+    });
+  }catch(err){
+    if(err.message === 'missing-key'){
+      statusLbl.textContent = 'Paste your Groq API key above first';
+    } else if(err.message === 'rate-limited'){
+      statusLbl.textContent = "You've hit today's free-tier limit — wait a bit and try again";
+    } else {
+      statusLbl.textContent = 'Something went wrong — try again';
+    }
+    regTxt.textContent = err.message === 'missing-key' ? 'Waiting for an API key…' : (err.message === 'rate-limited' ? 'Free-tier limit reached for now.' : 'Error reaching the model.');
+    enTxt.textContent = regTxt.textContent;
+  }
+}
+
+/* ---------------- PDF upload + translate ---------------- */
+if(window['pdfjsLib']){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+const pdfInput = document.getElementById('pdfInput');
+const fileNameEl = document.getElementById('fileName');
+const translateBtn = document.getElementById('translateBtn');
+const pdfStatus = document.getElementById('pdfStatus');
+const pdfRegTxt = document.getElementById('pdfRegTxt');
+const pdfEnTxt = document.getElementById('pdfEnTxt');
+let extractedText = '';
+
+pdfInput.addEventListener('change', async ()=>{
+  const file = pdfInput.files[0];
+  if(!file) return;
+  fileNameEl.textContent = file.name;
+  pdfStatus.textContent = 'Reading PDF…';
+  translateBtn.disabled = true;
+  try{
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let text = '';
+    for(let p=1; p<=pdf.numPages && text.length < 6000; p++){
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      text += content.items.map(it=>it.str).join(' ') + '\n\n';
+    }
+    extractedText = text.slice(0, 6000);
+    pdfEnTxt.classList.remove('placeholder');
+    pdfEnTxt.textContent = extractedText || '(No extractable text found — this may be a scanned/image PDF.)';
+    pdfStatus.textContent = extractedText ? 'Ready — pick a language above and translate.' : 'No extractable text found.';
+    translateBtn.disabled = !extractedText;
+  }catch(err){
+    pdfStatus.textContent = 'Could not read that PDF.';
+  }
+});
+
+translateBtn.addEventListener('click', async ()=>{
+  if(!extractedText) return;
+  pdfStatus.textContent = 'Translating to ' + currentName + '…';
+  pdfRegTxt.classList.remove('placeholder');
+  pdfRegTxt.textContent = '…';
+  const sys = `Translate the document text the user provides into ${currentName}, faithfully and completely. `+
+    `Reply with ONLY a raw JSON object, no markdown fences, no extra text, in this exact shape: `+
+    `{"regional": "<full translation in ${currentName}>", "english": "<the original text, lightly cleaned up>"}`;
+  try{
+    const parsed = await callClaude(sys, extractedText);
+    pdfRegTxt.textContent = parsed.regional || '—';
+    pdfEnTxt.textContent = parsed.english || extractedText;
+    pdfStatus.textContent = 'Done.';
+  }catch(err){
+    if(err.message === 'missing-key'){
+      pdfStatus.textContent = 'Paste your Groq API key above first';
+    } else if(err.message === 'rate-limited'){
+      pdfStatus.textContent = "You've hit today's free-tier limit — wait a bit and try again";
+    } else {
+      pdfStatus.textContent = 'Translation failed — try again.';
+    }
+  }
+});
+</script>
+</body>
+</html>
